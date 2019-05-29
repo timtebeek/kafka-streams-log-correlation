@@ -1,7 +1,5 @@
 package com.github.timtebeek;
 
-import java.util.Map;
-
 import brave.kafka.clients.KafkaTracing;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,11 +9,21 @@ import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.Around;
+import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.cloud.sleuth.autoconfig.TraceAutoConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.EnableKafkaStreams;
 import org.springframework.kafka.config.StreamsBuilderFactoryBean;
+import org.springframework.kafka.core.ProducerFactory;
 
 @SpringBootApplication
 @EnableKafkaStreams
@@ -40,37 +48,49 @@ public class KafkaStreamsLogCorrelationApplication {
 		return numbersStream;
 	}
 
-	@Bean
-	public KafkaClientSupplier kafkaClientSupplier(StreamsBuilderFactoryBean defaultKafkaStreamsBuilder, KafkaTracing kafkaTracing) {
-		MyTracingKafkaClientSupplier clientSupplier = new MyTracingKafkaClientSupplier(kafkaTracing);
-		// Rather than setting ClientSupplier like this, we try creating pointcuts as in SleuthKafkaAspect
-		defaultKafkaStreamsBuilder.setClientSupplier(clientSupplier);
-		return clientSupplier;
+	@Configuration
+	@ConditionalOnProperty(value = "spring.sleuth.messaging.kafka.streams.enabled", matchIfMissing = true)
+	@ConditionalOnClass(ProducerFactory.class)
+	@AutoConfigureAfter({ TraceAutoConfiguration.class })
+	protected static class SleuthKafkaStreamsConfiguration {
+		@Bean
+		public KafkaClientSupplier kafkaClientSupplier(StreamsBuilderFactoryBean defaultKafkaStreamsBuilder) {
+			KafkaClientSupplier clientSupplier = new DefaultKafkaClientSupplier();
+			defaultKafkaStreamsBuilder.setClientSupplier(clientSupplier);
+			return clientSupplier;
+		}
+
+		@Bean
+		SleuthKafkaStreamsAspect sleuthKafkaStreamsAspect(KafkaTracing kafkaTracing) {
+			return new SleuthKafkaStreamsAspect(kafkaTracing);
+		}
+
 	}
 }
 
+@Aspect
 @RequiredArgsConstructor
-class MyTracingKafkaClientSupplier extends DefaultKafkaClientSupplier {
+class SleuthKafkaStreamsAspect {
 
 	private final KafkaTracing kafkaTracing;
 
-	@Override
-	public Producer<byte[], byte[]> getProducer(Map<String, Object> config) {
-		return kafkaTracing.producer(super.getProducer(config));
+	@Pointcut("execution(* org.apache.kafka.streams.KafkaClientSupplier.getProducer(..))")
+	private void anyKafkaClientSupplierProducer() {
+	} // NOSONAR
+
+	@Pointcut("execution(* org.apache.kafka.streams.KafkaClientSupplier.get*Consumer(..))")
+	private void anyKafkaClientSupplierConsumer() {
+	} // NOSONAR
+
+	@Around("anyKafkaClientSupplierProducer()")
+	public Object wrapKafkaClientSupplierProducer(ProceedingJoinPoint pjp) throws Throwable {
+		Producer producer = (Producer) pjp.proceed();
+		return this.kafkaTracing.producer(producer);
 	}
 
-	@Override
-	public Consumer<byte[], byte[]> getConsumer(Map<String, Object> config) {
-		return kafkaTracing.consumer(super.getConsumer(config));
-	}
-
-	@Override
-	public Consumer<byte[], byte[]> getRestoreConsumer(Map<String, Object> config) {
-		return kafkaTracing.consumer(super.getRestoreConsumer(config));
-	}
-
-	@Override
-	public Consumer<byte[], byte[]> getGlobalConsumer(Map<String, Object> config) {
-		return kafkaTracing.consumer(super.getGlobalConsumer(config));
+	@Around("anyKafkaClientSupplierConsumer()")
+	public Object wrapKafkaClientSupplierConsumer(ProceedingJoinPoint pjp) throws Throwable {
+		Consumer consumer = (Consumer) pjp.proceed();
+		return this.kafkaTracing.consumer(consumer);
 	}
 }
