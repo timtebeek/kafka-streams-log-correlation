@@ -30,7 +30,7 @@ public class KafkaStreamsLogCorrelationApplicationTests {
 	}
 
 	@Test
-	public void verifyEvenTracePropagation() {
+	public void verifyTracePropagationAndNewSpan() {
 		String key = "trace-propagation";
 		produce(key, 1);
 		produce(key, 2);
@@ -41,11 +41,12 @@ public class KafkaStreamsLogCorrelationApplicationTests {
 
 		Assert.assertEquals("2", record.value());
 		Assert.assertEquals(TRACEID_VALUE, new String(record.headers().lastHeader("X-B3-TraceId").value()));
-		Assert.assertNotEquals("Expected a new SpanId", "a2fb4a1d1a96d312", new String(record.headers().lastHeader("X-B3-SpanId").value()));
+		String spanId = new String(record.headers().lastHeader("X-B3-SpanId").value());
+		Assert.assertNotEquals("Expected a new SpanId", "a2fb4a1d1a96d312", spanId);
 	}
 
 	@Test
-	public void verifyOddTracePropagation() {
+	public void verifyLogCorrelation() {
 		String key = "log-correlation";
 		produce(key, 4);
 		produce(key, 5);
