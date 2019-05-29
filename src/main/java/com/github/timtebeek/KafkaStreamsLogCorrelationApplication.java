@@ -42,8 +42,7 @@ public class KafkaStreamsLogCorrelationApplication {
 
 	@Bean
 	public KafkaClientSupplier kafkaClientSupplier(StreamsBuilderFactoryBean defaultKafkaStreamsBuilder, KafkaTracing kafkaTracing) {
-		MyTracingKafkaClientSupplier clientSupplier = new MyTracingKafkaClientSupplier(kafkaTracing);
-		// Rather than setting ClientSupplier like this, we try creating pointcuts as in SleuthKafkaAspect
+		KafkaClientSupplier clientSupplier = new MyTracingKafkaClientSupplier(kafkaTracing);
 		defaultKafkaStreamsBuilder.setClientSupplier(clientSupplier);
 		return clientSupplier;
 	}
