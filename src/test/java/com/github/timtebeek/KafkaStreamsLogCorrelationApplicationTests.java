@@ -9,6 +9,9 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.web.client.RestTemplate;
+
+import static org.hamcrest.CoreMatchers.containsString;
 
 public class KafkaStreamsLogCorrelationApplicationTests {
 
@@ -38,8 +41,7 @@ public class KafkaStreamsLogCorrelationApplicationTests {
 
 		Assert.assertEquals("2", record.value());
 		Assert.assertEquals(TRACEID_VALUE, new String(record.headers().lastHeader("X-B3-TraceId").value()));
-		// XXX Would have somewhat expected a different spanId
-		Assert.assertEquals("a2fb4a1d1a96d312", new String(record.headers().lastHeader("X-B3-SpanId").value()));
+		Assert.assertNotEquals("Expected a new SpanId", "a2fb4a1d1a96d312", new String(record.headers().lastHeader("X-B3-SpanId").value()));
 	}
 
 	@Test
@@ -54,8 +56,10 @@ public class KafkaStreamsLogCorrelationApplicationTests {
 
 		Assert.assertEquals("5", record.value());
 		Assert.assertEquals(TRACEID_VALUE, new String(record.headers().lastHeader("X-B3-TraceId").value()));
-		// XXX Would have somewhat expected a different spanId
-		Assert.assertEquals("a2fb4a1d1a96d315", new String(record.headers().lastHeader("X-B3-SpanId").value()));
+
+		// Retrieve logfile and look for TraceId
+		String loglines = new RestTemplate().getForObject("http://localhost:8080/actuator/logfile", String.class);
+		Assert.assertThat("Expected logfile to contain TraceId", loglines, containsString(TRACEID_VALUE));
 	}
 
 	private void produce(String key, int number) {
