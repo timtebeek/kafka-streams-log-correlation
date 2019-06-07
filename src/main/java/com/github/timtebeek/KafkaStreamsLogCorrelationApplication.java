@@ -1,21 +1,12 @@
 package com.github.timtebeek;
 
-import java.util.Map;
-
-import brave.kafka.clients.KafkaTracing;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.annotation.EnableKafkaStreams;
-import org.springframework.kafka.config.StreamsBuilderFactoryBean;
 
 @SpringBootApplication
 @EnableKafkaStreams
@@ -40,36 +31,4 @@ public class KafkaStreamsLogCorrelationApplication {
 		return numbersStream;
 	}
 
-	@Bean
-	public KafkaClientSupplier kafkaClientSupplier(StreamsBuilderFactoryBean defaultKafkaStreamsBuilder, KafkaTracing kafkaTracing) {
-		KafkaClientSupplier clientSupplier = new MyTracingKafkaClientSupplier(kafkaTracing);
-		defaultKafkaStreamsBuilder.setClientSupplier(clientSupplier);
-		return clientSupplier;
-	}
-}
-
-@RequiredArgsConstructor
-class MyTracingKafkaClientSupplier extends DefaultKafkaClientSupplier {
-
-	private final KafkaTracing kafkaTracing;
-
-	@Override
-	public Producer<byte[], byte[]> getProducer(Map<String, Object> config) {
-		return kafkaTracing.producer(super.getProducer(config));
-	}
-
-	@Override
-	public Consumer<byte[], byte[]> getConsumer(Map<String, Object> config) {
-		return kafkaTracing.consumer(super.getConsumer(config));
-	}
-
-	@Override
-	public Consumer<byte[], byte[]> getRestoreConsumer(Map<String, Object> config) {
-		return kafkaTracing.consumer(super.getRestoreConsumer(config));
-	}
-
-	@Override
-	public Consumer<byte[], byte[]> getGlobalConsumer(Map<String, Object> config) {
-		return kafkaTracing.consumer(super.getGlobalConsumer(config));
-	}
 }
