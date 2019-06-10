@@ -1,8 +1,11 @@
 package com.github.timtebeek;
 
+import brave.kafka.streams.KafkaStreamsTracing;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.KStream;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -17,6 +20,9 @@ public class KafkaStreamsLogCorrelationApplication {
 		SpringApplication.run(KafkaStreamsLogCorrelationApplication.class, args);
 	}
 
+	@Autowired
+	private KafkaStreamsTracing kafkaStreamsTracing;
+
 	@Bean
 	public KStream<String, String> doStream(StreamsBuilder builder) throws Exception {
 		KStream<String, String> numbersStream = builder.stream("numbers");
@@ -25,8 +31,10 @@ public class KafkaStreamsLogCorrelationApplication {
 				(k, v) -> Integer.valueOf(v) % 2 == 0,
 				(k, v) -> true);
 
-		branches[0].peek((k, v) -> log.info("Even: {} -> {}", k, v)).to("even-numbers");
-		branches[1].peek((k, v) -> log.info("Odd: {} -> {}", k, v)).to("odd-numbers");
+		// branches[0].peek((k, v) -> log.info("Even: {} -> {}", k, v)).to("even-numbers");
+		// branches[1].peek((k, v) -> log.info("Odd: {} -> {}", k, v)).to("odd-numbers");
+		branches[0].transform(kafkaStreamsTracing.peek("even", (k, v) -> log.info("Even: {} -> {}", k, v))).to("even-numbers");
+		branches[1].transform(kafkaStreamsTracing.peek("odd", (k, v) -> log.info("Odd: {} -> {}", k, v))).to("odd-numbers");
 
 		return numbersStream;
 	}
