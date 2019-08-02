@@ -9,11 +9,13 @@ import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.web.client.RestTemplate;
 
 import static org.hamcrest.CoreMatchers.containsString;
 
+@Ignore("needs local Kafka")
 public class KafkaStreamsLogCorrelationApplicationTests {
 
 	private TestProducer<String, String> numberProducer = new TestProducer<>();
