@@ -33,8 +33,8 @@ public class KafkaStreamsLogCorrelationApplication {
 
 		// branches[0].peek((k, v) -> log.info("Even: {} -> {}", k, v)).to("even-numbers");
 		// branches[1].peek((k, v) -> log.info("Odd: {} -> {}", k, v)).to("odd-numbers");
-		branches[0].transform(kafkaStreamsTracing.peek("even", (k, v) -> log.info("Even: {} -> {}", k, v))).to("even-numbers");
-		branches[1].transform(kafkaStreamsTracing.peek("odd", (k, v) -> log.info("Odd: {} -> {}", k, v))).to("odd-numbers");
+		branches[0].transformValues(kafkaStreamsTracing.peek("even", (k, v) -> log.info("Even: {} -> {}", k, v))).to("even-numbers");
+		branches[1].transformValues(kafkaStreamsTracing.peek("odd", (k, v) -> log.info("Odd: {} -> {}", k, v))).to("odd-numbers");
 
 		return numbersStream;
 	}
