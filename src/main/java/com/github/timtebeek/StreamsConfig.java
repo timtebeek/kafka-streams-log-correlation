@@ -22,7 +22,11 @@ public class StreamsConfig {
 	@Bean
 	public KStream<String, String> doStream(StreamsBuilder builder) throws Exception {
 		KStream<String, String> numbersStream = builder.stream("numbers");
-		numbersStream.transformValues(kafkaStreamsTracing.peek("get", (k, v) -> {
+		numbersStream.transformValues(kafkaStreamsTracing.peek("set", (k, v) -> {
+			ExtraFieldPropagation.set(tracer.currentSpan().context(), "messageid", "messageid_" + v);
+			log.info("set for {} -> {}", k, v);
+		}))
+		.transformValues(kafkaStreamsTracing.peek("get", (k, v) -> {
 			String value = ExtraFieldPropagation.get(tracer.currentSpan().context(), "messageid");
 			log.info("got: {} for {} -> {}", value, k, v);
 			log.info("MDC: {}", MDC.getCopyOfContextMap());
