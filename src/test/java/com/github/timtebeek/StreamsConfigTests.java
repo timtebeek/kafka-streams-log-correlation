@@ -88,7 +88,7 @@ public class StreamsConfigTests {
 		String spanId = RandomStringUtils.randomNumeric(15);
 		String key = "extra-propagation-" + RandomStringUtils.randomAlphanumeric(10);
 		ProducerRecord<String, String> producedRecord = record(traceId, spanId, key, 7);
-		producedRecord.headers().add("messageid", "messageid_7".getBytes());
+//		producedRecord.headers().add("messageid", "messageid_7".getBytes());
 		numberProducer.doProduce(producedRecord);
 
 		ConsumerRecord<String, String> consumedRecord = oddListener.getOutputFor(cr -> cr.key().equals(key))
@@ -103,7 +103,7 @@ public class StreamsConfigTests {
 
 		// Assert message_id logged within application
 		String loglines = new RestTemplate().getForObject("http://localhost:8080/actuator/logfile", String.class);
-		Assert.assertThat("Expected logfile to contain message_id", loglines, containsString("message_id_7"));
+		Assert.assertThat("Expected logfile to contain message_id", loglines, containsString("messageid_7"));
 	}
 
 }
