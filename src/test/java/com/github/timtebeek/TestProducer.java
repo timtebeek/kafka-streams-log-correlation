@@ -6,6 +6,7 @@ import java.util.concurrent.Future;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.*;
+import org.apache.kafka.common.serialization.IntegerSerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 
 @Slf4j
@@ -21,7 +22,7 @@ public class TestProducer<K, V> implements Closeable {
 		props.put("batch.size", 16384);
 		props.put("buffer.memory", 33554432);
 		props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-		props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+		props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, IntegerSerializer.class);
 		props.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "gzip");
 
 		try {

@@ -17,7 +17,7 @@ spring:
           key:
             serde: org.apache.kafka.common.serialization.Serdes$StringSerde
           value:
-            serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+            serde: org.apache.kafka.common.serialization.Serdes$IntegerSerde
 
   zipkin:
     baseUrl: "http://localhost:9411/"
