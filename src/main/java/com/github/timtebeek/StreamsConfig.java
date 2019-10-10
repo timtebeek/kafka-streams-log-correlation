@@ -35,22 +35,17 @@ public class StreamsConfig {
 				}));
 
 		return new KafkaStreamBrancher<String, Integer>()
-				.branch((k, v) -> v % 2 == 0, evenStream -> {
-					evenStream
-							// Log with trace context
-							.transformValues(kafkaStreamsTracing.peek("even", (k, v) -> {
-								log.info("Even: {} -> {}", k, v);
-								log.info("MDC: {}", MDC.getCopyOfContextMap());
-							}))
-							.to(EVEN_NUMBERS_TOPIC);
-
-				})
-				.defaultBranch(oddStream -> {
-					oddStream
-							// Log without trace context
-							.peek((k, v) -> log.info("Odd: {} -> {}", k, v))
-							.to(ODD_NUMBERS_TOPIC);
-				})
+				.branch((k, v) -> v % 2 == 0, evenStream -> evenStream
+						// Log with trace context
+						.transformValues(kafkaStreamsTracing.peek("even", (k, v) -> {
+							log.info("Even: {} -> {}", k, v);
+							log.info("MDC: {}", MDC.getCopyOfContextMap());
+						}))
+						.to(EVEN_NUMBERS_TOPIC))
+				.defaultBranch(oddStream -> oddStream
+						// Log without trace context
+						.peek((k, v) -> log.info("Odd: {} -> {}", k, v))
+						.to(ODD_NUMBERS_TOPIC))
 				.onTopOf(numbersStream);
 	}
 }
