@@ -28,6 +28,7 @@ public class StreamsConfig {
 	public KStream<String, Integer> doStream(StreamsBuilder builder) throws Exception {
 		KStream<String, Integer> numbersStream = builder.stream(NUMBERS_TOPIC);
 		numbersStream
+				// Append diagnostic information
 				.transformValues(kafkaStreamsTracing.peek("set", (k, v) -> {
 					ExtraFieldPropagation.set(tracer.currentSpan().context(), "messageid", "messageid_" + v);
 					log.info("set messageid for {} -> {}", k, v);
@@ -36,6 +37,7 @@ public class StreamsConfig {
 		return new KafkaStreamBrancher<String, Integer>()
 				.branch((k, v) -> v % 2 == 0, evenStream -> {
 					evenStream
+							// Log with trace context
 							.transformValues(kafkaStreamsTracing.peek("even", (k, v) -> {
 								log.info("Even: {} -> {}", k, v);
 								log.info("MDC: {}", MDC.getCopyOfContextMap());
@@ -45,9 +47,8 @@ public class StreamsConfig {
 				})
 				.defaultBranch(oddStream -> {
 					oddStream
-							.transformValues(kafkaStreamsTracing.peek("odd", (k, v) -> {
-								log.info("Odd: {} -> {}", k, v);
-							}))
+							// Log without trace context
+							.peek((k, v) -> log.info("Odd: {} -> {}", k, v))
 							.to(ODD_NUMBERS_TOPIC);
 				})
 				.onTopOf(numbersStream);
