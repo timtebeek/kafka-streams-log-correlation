@@ -11,7 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
@@ -90,10 +89,7 @@ public class StreamsConfigTest {
 
 	private static ProducerRecord<String, Integer> record(String traceId, String spanId, String key, int number) {
 		ProducerRecord<String, Integer> record = new ProducerRecord<>("numbers", key, number);
-		Headers headers = record.headers();
-		headers.add(new RecordHeader("X-B3-TraceId", traceId.getBytes()));
-		headers.add(new RecordHeader("X-B3-SpanId", (number + spanId).getBytes()));
-		headers.add(new RecordHeader("X-B3-Sampled", "1".getBytes()));
+		record.headers().add(new RecordHeader("b3", String.format("%s-%d%s-1", traceId, number, spanId).getBytes()));
 		return record;
 	}
 
