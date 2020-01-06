@@ -131,7 +131,7 @@ For this, Sleuth can send a sampling of traces to Zipkin for visualization.
 
 To explore the traces stored in zipkin, you can search for and filter on serviceName, spanName, min/max duration and remoteServiceName, as well as particular tags, all within a certain time frame.
 When selecting a particular trace, you might see a visualization such as the following.
-image:/uploads/2019/10/zipkin.png[alt='Zipkin trace visualization']
+image:/doc/zipkin.png[alt='Zipkin trace visualization']
 Here you can clearly see how much time was spent on each of the processing steps.
 You'll notice the named span `set` corresponds to our instrumentation in the code above.
 For larger traces spanning multiple services, this is a perfect starting point to identify performance bottlenecks.
@@ -139,7 +139,7 @@ For larger traces spanning multiple services, this is a perfect starting point t
 == Dependency graph and customization
 Zipkin also has the option to convert a collection of traces into a network of nodes and edges, allowing you to explore the topology.
 However, by default the network generated for Kafka Streams applications will be rather dull.
-image:/uploads/2019/10/zipkin-graph1.png[alt='Kafka Network Graph 1']
+image:/doc/zipkin-graph1.png[alt='Kafka Network Graph 1']
 You'll notice that even though our application consumes from one topic, and writes to two topics, all three are visualized as a single "kafka" node.
 This is far from ideal, as even a large network of applications using a diverse set of topics, will all just point to a single "kafka" node. 
 Now luckily, we can change this by adding a `FinishedSpanHandler` to our application.
@@ -163,7 +163,7 @@ public FinishedSpanHandler finishedSpanHandler() {
 ----
 As the topic name is available as a tag within our span context, we can append this to the `remoteServiceName` before the span is sent to Zipkin.
 Our improved network graph will then create an individual node for each topic, rather than for kafka as a whole.
-image:/uploads/2019/10/zipkin-graph2.png[alt='Kafka Network Graph 2']
+image:/doc/zipkin-graph2.png[alt='Kafka Network Graph 2']
 
 Now with all this in place we're perfectly set to better comprehend and optimize our Kafka Streams applications!
 
