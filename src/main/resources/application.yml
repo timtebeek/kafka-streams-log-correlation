@@ -1,5 +1,6 @@
 logging:
-  file: target/spring.log
+  file:
+    name: target/spring.log
 management:
   endpoints:
     web:

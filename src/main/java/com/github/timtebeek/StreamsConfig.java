@@ -1,8 +1,8 @@
 package com.github.timtebeek;
 
 import brave.Tracer;
+import brave.baggage.BaggageField;
 import brave.kafka.streams.KafkaStreamsTracing;
-import brave.propagation.ExtraFieldPropagation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -21,6 +21,8 @@ public class StreamsConfig {
 	private static final String ODD_NUMBERS_TOPIC = "odd-numbers";
 	private static final String EVEN_NUMBERS_TOPIC = "even-numbers";
 
+	private static final BaggageField MESSAGEID = BaggageField.create("messageid");
+
 	private final KafkaStreamsTracing kafkaStreamsTracing;
 	private final Tracer tracer;
 
@@ -30,7 +32,7 @@ public class StreamsConfig {
 		numbersStream
 				// Append diagnostic information
 				.transformValues(kafkaStreamsTracing.peek("set", (k, v) -> {
-					ExtraFieldPropagation.set(tracer.currentSpan().context(), "messageid", "messageid_" + v);
+					MESSAGEID.updateValue(tracer.currentSpan().context(), "messageid_" + v);
 					log.info("set messageid for {} -> {}", k, v);
 				}));
 

@@ -52,6 +52,7 @@ For that, we add a third log statement to the odd numbers stream that uses a reg
 With the above changes, we end up at the following code.
 [source,java]
 ----
+private static final BaggageField MESSAGEID = BaggageField.create("messageid");
 private final KafkaStreamsTracing kafkaStreamsTracing;
 private final Tracer tracer;
 
@@ -61,7 +62,7 @@ public KStream<String, Integer> doStream(StreamsBuilder builder) throws Exceptio
   numbersStream
       // Append diagnostic information
       .transformValues(kafkaStreamsTracing.peek("set", (k, v) -> {
-        ExtraFieldPropagation.set(tracer.currentSpan().context(), "messageid", "messageid_" + v);
+        MESSAGEID.updateValue(tracer.currentSpan().context(), "messageid_" + v);
         log.info("set messageid for {} -> {}", k, v);
       }));
 
@@ -118,7 +119,7 @@ As indicated in the source comments, for odd numbers, the second log line does n
 This is because explicit instrumentation through `KafkaStreamsTracing` is a hard requirement for log correlation, for now. However, trace headers are forwarded nonetheless, and a new span is still created when sending a message to the `odd-numbers` topic.
 
 For even numbers we _do_ see trace and span identifiers logged with our messages.
-And when we explicitly log all MDC variables we even see the `messageid` set before through `ExtraFieldPropagation`.
+And when we explicitly log all MDC variables we even see the `messageid` set before through `BaggageField MESSAGEID`.
 This means that when using for instance https://github.com/logstash/logstash-logback-encoder[Logstash Logback Encoder], all MDC variables will be available in the log output.
 Notable too, is the fact that we see the same `traceId`, but a different `spanId` logged; indicating separate spans are created here as well.
 You'll see these details first hand when opening up Zipkin through http://localhost:9411/zipkin/.
@@ -142,18 +143,18 @@ However, by default the network generated for Kafka Streams applications will be
 image:/doc/zipkin-graph1.png[alt='Kafka Network Graph 1']
 You'll notice that even though our application consumes from one topic, and writes to two topics, all three are visualized as a single "kafka" node.
 This is far from ideal, as even a large network of applications using a diverse set of topics, will all just point to a single "kafka" node. 
-Now luckily, we can change this by adding a `FinishedSpanHandler` to our application.
+Now luckily, we can change this by adding a `SpanHandler` to our application.
 
 [source,java]
 ----
 @Bean
-public FinishedSpanHandler finishedSpanHandler() {
+public SpanHandler finishedSpanHandler() {
   // Suffix remote service name "kafka" with topic name for clearer dependency graph
-  return new FinishedSpanHandler() {
+  return new SpanHandler() {
       @Override
-      public boolean handle(TraceContext context, MutableSpan span) {
+      public boolean end(TraceContext context, MutableSpan span, Cause cause) {
         String topic = span.tag("kafka.topic");
-        if (topic != null) {
+        if (cause == Cause.FINISHED && topic != null) {
           span.remoteServiceName(span.remoteServiceName() + '/' + topic);
         }
         return true;
